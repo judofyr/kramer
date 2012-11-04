@@ -153,7 +153,7 @@ module Kramer
         if length = matches?(pos)
           yield pos.consume(length)
         elsif !pos.done?
-          yield pos.fail("Expected: #{@match}")
+          yield pos.fail(@match)
         end
       end
     end

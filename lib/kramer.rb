@@ -56,6 +56,25 @@ module Kramer
     def result
       @results.first
     end
+
+    def failure_message
+      start = nil
+      fails = []
+      @failures.sort_by { |x| -x.start }.each do |f|
+        start ||= f.start
+        break if f.start != start
+        fails << f.value.message
+      end
+      sub = @string[0, start]
+      lineno = sub.count("\n") + 1
+      last_line = (sub.rindex("\n") || -1) + 1
+      col = start - last_line
+
+      rest = @string[last_line..-1].sub(/\n.*\Z/m, '')
+      spaces = " " * col
+      msg = "Expected one of: #{fails.map(&:inspect).join('  ')}"
+      "Parse error at line #{lineno}\n  #{rest}\n  #{spaces}^\n#{msg}"
+    end
   end
 end
 
