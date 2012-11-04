@@ -1,52 +1,26 @@
 $LOAD_PATH << File.expand_path('../../lib', __FILE__)
-require 'kramer'
+require 'kramer/dsl'
 
-class Calc < Kramer::Grammar
-  rule(:ws) {
-    term(/\s+/).maybe
-  }
+Calc = Kramer::DSL.parse <<-'end'
+root Expr
 
-  helper(:t) { |s, n|
-    term(s)/n + ws
-  }
-
-  rule(:number) {
-    (term(/[0-9]+/) ^ :number) + ws
-  }
-
-  rule(:sub) {
-    term("(") + expr + term(")")
-  }
-
-  rule(:basic) {
-    number | sub
-  }
-
-  helper(:op) { |l, op, r|
-    l/:left + term(op)/:op + ws + r/:right ^ :infix
-  }
-
-  rule(:expr) {
-    basic.
-    infix { |l, r|
-      op(r, "**", l)
-    }.
-    infix { |l, r|
-      op(l, "*", r) | op(l, "/", r)
-    }.
-    infix { |l, r|
-      op(l, "+", r) | op(l, "-", r)
-    }
-  }
-
-  root :expr
+WS     <- [\s]+
+Number <- [0-9]+ @number
+Sub    <- "(" WS?  Expr  ")"
+Expr   <- Number WS?
+        | Sub WS?
+        > Expr:left "**":type WS? Expr:right  @op %right
+        > Expr:left "*":type  WS? Expr:right  @op  %left
+        | Expr:left "/":type  WS? Expr:right  @op  %left
+        > Expr:left "+":type  WS? Expr:right  @op  %left
+        | Expr:left "-":type  WS? Expr:right  @op  %left
 end
 
 def run(node)
   val = node.value
   case node.name
-  when :infix
-    run(val[:left].val).send(val[:op].val, run(val[:right].val))
+  when :op
+    run(val[:left].val).send(val[:type].val, run(val[:right].val))
   when :number
     val.to_i
   else
@@ -66,7 +40,7 @@ while str = input
   if c.success?
     puts "=> #{run(c.result.val)}"
   else
-    puts "!> Parse error"
+    puts c.failure_message
   end
 end
 
