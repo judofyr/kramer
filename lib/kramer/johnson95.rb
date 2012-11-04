@@ -112,6 +112,7 @@ module Kramer
 
         [NilClass, :any] => proc { |_, b| b },
         [:any, NilClass] => proc { |a, _| a },
+        [:any, :any]     => proc { |_, _| nil },
       }
 
       # Compute wildcards:
@@ -122,6 +123,7 @@ module Kramer
           [c1, c2],
           [c1, :any],
           [:any, c2],
+          [:any, :any],
         ]
 
         res = nil
@@ -140,11 +142,10 @@ module Kramer
         @cache ||= {}
       end
 
+      require 'pp'
+
       def combine_value(v1, v2)
-        c = COMBINERS[[v1.class, v2.class]]
-        #p [v1.class, v2.class]
-        raise "Can't combine: #{v1.inspect} - #{v2.inspect}" if c.nil?
-        c.to_proc.call(v1, v2)
+        COMBINERS[[v1.class, v2.class]].to_proc.call(v1, v2)
       end
     end
 
